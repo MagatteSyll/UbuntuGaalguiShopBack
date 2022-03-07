@@ -531,30 +531,59 @@ class PostCommande(APIView):
 	def post(self,request):
 		data=request.data
 		produitcommande=CartProduct.objects.get(id=data['cart_id'])
-		if produitcommande.product.quantite>=produitcommande.quantity:
-			adress_id=data['adress_id']
-			vendeur=produitcommande.product.vendeur
-			prod=produitcommande.product.nom
-			adress=Adress.objects.get(id=adress_id)
-			serializer=CommandeSerializer(data=data)
-			user=request.user
-			livraison=decimal.Decimal(data['livraison'])
-			commission=round(2*produitcommande.product.prix/decimal.Decimal(100),2)
-			montant_vendeur=produitcommande.product.prix-commission
-			if serializer.is_valid():
-				serializer.save(produitcommande=produitcommande,
-					adress=adress,active=True,livraison=livraison,acheteur=user,
-					statut_commande='produit en attente de livraison',commission=commission,
-					montant_vendeur=montant_vendeur)
-				id_commande=serializer.data['id']
-				commande=Commande.objects.get(id=id_commande)
-				produitcommande.product.quantite-=1
-				produitcommande.product.save()
-				if produitcommande.product.quantite==0:
-					produitcommande.product.active=False
+		if produitcommande.product is None:
+			if produitcommande.imageproduct.quantite>=produitcommande.quantity:
+				adress_id=data['adress_id']
+				vendeur=produitcommande.imageproduct.produit.vendeur
+				prod=produitcommande.imageproduct.produit.nom
+				adress=Adress.objects.get(id=adress_id)
+				serializer=CommandeSerializer(data=data)
+				user=request.user
+				livraison=round(decimal.Decimal(data['livraison']),2)
+				commission=round(2*produitcommande.imageproduct.produit.prix/decimal.Decimal(100),2)
+				montant_vendeur=produitcommande.imageproduct.produit.prix-commission
+				if serializer.is_valid():
+					serializer.save(produitcommande=produitcommande,
+						adress=adress,active=True,livraison=livraison,acheteur=user,
+						statut_commande='produit en attente de livraison',commission=commission,
+						montant_vendeur=montant_vendeur)
+					id_commande=serializer.data['id']
+					commande=Commande.objects.get(id=id_commande)
+					produitcommande.imageproduct.quantite-=1
+					produitcommande.imageproduct.save()
+					if produitcommande.imageproduct.quantite==0:
+						produitcommande.imageproduct.active=False
+						produitcommande.imageproduct.save()
+					NotificationCommandeAuVendeur(vendeur,commande,produitcommande.imageproduct.produit.nom)
+					return Response(serializer.data)
+				#return Response(serializer.errors)
+		else:
+			if produitcommande.product.qte>=produitcommande.quantity:
+				adress_id=data['adress_id']
+				vendeur=produitcommande.product.vendeur
+				prod=produitcommande.product.nom
+				adress=Adress.objects.get(id=adress_id)
+				serializer=CommandeSerializer(data=data)
+				user=request.user
+				livraison=decimal.Decimal(data['livraison'])
+				commission=round(2*produitcommande.product.prix/decimal.Decimal(100),2)
+				montant_vendeur=produitcommande.product.prix-commission
+				if serializer.is_valid():
+					serializer.save(produitcommande=produitcommande,
+						adress=adress,active=True,livraison=livraison,acheteur=user,
+						statut_commande='produit en attente de livraison',commission=commission,
+						montant_vendeur=montant_vendeur)
+					id_commande=serializer.data['id']
+					commande=Commande.objects.get(id=id_commande)
+					produitcommande.product.qte-=1
 					produitcommande.product.save()
-				NotificationCommandeAuVendeur(vendeur,commande)
-				return Response(serializer.data)
+					if produitcommande.product.qte==0:
+						produitcommande.product.active=False
+						produitcommande.product.save()
+					NotificationCommandeAuVendeur(vendeur,commande,produitcommande.product.nom)
+					return Response(serializer.data)
+				#return Response(serializer.errors)
+				
 		#return Response(serializer.errors)
 
 
@@ -729,11 +758,11 @@ class CalculLivraison(APIView):
 		adress=Adress.objects.get(id=adress_id)
 		produit=Produit.objects.get(slug=slug)
 		if produit.region.id==adress.region.id:
-			livraison=decimal.Decimal(500)
+			livraison=round(decimal.Decimal(500),2)
 			total=livraison + cartproduit.subtotal
 			return Response({'livraison':livraison,'total':total})
 		else:
-			livraison=decimal.Decimal(1000)
+			livraison=round(decimal.Decimal(1000),2)
 			total=livraison + cartproduit.subtotal
 			return Response({'livraison':livraison ,'total':total})
 

@@ -12,16 +12,16 @@ def notif(user,data):
     'value': data
     })
 
-def NotifcationChangementEtatCommande(user,commande):
+def NotifcationChangementEtatCommande(user,commande,nom):
 	message='L etat actuel de votre commande'+" " + commande.produitcommande.product.nom + " " +  'est: ' +" "+ commande.statut_commande +"."
 	data={'titre':'Notification sur la commande'+" " + commande.produitcommande.product.nom,'body':message}
 	Notification.objects.create(user=user,message=message,nature_notification='etat commande',commande=commande)
 	notif(user,data)
 
-def NotificationCommandeAuVendeur(user,commande):
-	message='Votre produit'+" " + commande.produitcommande.product.nom + " " +  'a été commandé  ' +" "+"rendez vous au point d acces le plus proche pour le déposer." 
+def NotificationCommandeAuVendeur(user,commande,nom):
+	message='Votre produit'+" " +  nom + " " +  'a été commandé  ' +" "+"rendez vous au point d acces le plus proche pour le déposer." 
 	Notification.objects.create(user=user,message=message,nature_notification='vente',commande=commande)
-	data={'titre':'Notification de vente du produit'+" " + commande.produitcommande.product.nom,'body':message}
+	data={'titre':'Notification de vente du produit'+" " + nom,'body':message}
 	notif(user,data)
 	
 
