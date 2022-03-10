@@ -49,6 +49,8 @@ class Boutique(models.Model):
 		follower=models.ManyToManyField(Follower)
 		nbrefollower=models.PositiveIntegerField(default=0)
 		slug = AutoSlugField(populate_from=random_string_generator,unique=True)
+		avertissement=models.PositiveIntegerField(default=0)
+		active=models.BooleanField(default=True)
 
 		def __str__(self):
 		    return self.user.prenom	
@@ -71,13 +73,14 @@ class Produit(models.Model):
 	vendu=models.BooleanField(default=False)
 	taille=models.CharField(max_length=255,blank=True,null=True)
 	couleur=models.CharField(max_length=255,blank=True,null=True)
-	qte=models.PositiveIntegerField(blank=True,null=True)
+	qte=models.PositiveIntegerField(default=0)
 	variation=models.BooleanField(default=True)
 	region=models.ForeignKey(Region,on_delete=models.PROTECT)
 	slug = AutoSlugField(populate_from=random_string_generator,unique=True)
 	devise=models.ForeignKey(Devise,on_delete=models.PROTECT)	
 	recycler=models.BooleanField(default=False)
 	thumbnail=models.ImageField(upload_to='static/images',blank=True,null=True)
+	vendu_qte=models.PositiveIntegerField(default=0)
 
 	
 
@@ -86,7 +89,7 @@ class ProduitImage(models.Model):
 	image=models.ImageField(upload_to='static/images',blank=True,null=True)
 	size=models.CharField(max_length=255,blank=True,null=True)
 	color=models.CharField(max_length=255,blank=True,null=True)
-	quantite=models.PositiveIntegerField(blank=True,null=True)
+	quantite=models.PositiveIntegerField(default=0)
 	active=models.BooleanField(default=True)
 	vendu=models.BooleanField(default=False)
 	qte_vendu=models.PositiveIntegerField(default=0)
@@ -121,6 +124,7 @@ class Commande(models.Model):
 	phone = PhoneNumberField()
 	total=models.DecimalField( max_digits=19, decimal_places=2)
 	active=models.BooleanField(default=False)
+	payer=models.BooleanField(default=False)
 	created_at = models.DateTimeField(auto_now_add=True)
 	statut_commande =models.CharField(max_length=100, choices=STATUS_COMMANDE,blank=True)
 	livraison=models.DecimalField(max_digits=19, decimal_places=2)

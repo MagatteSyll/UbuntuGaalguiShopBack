@@ -10,12 +10,13 @@ def notif(user,data):
     async_to_sync(layer.group_send)(user.group, {
     'type': 'notify',
     'value': data
-    })
+    }) 
 
 def NotifcationChangementEtatCommande(user,commande,nom):
-	message='L etat actuel de votre commande'+" " + commande.produitcommande.product.nom + " " +  'est: ' +" "+ commande.statut_commande +"."
-	data={'titre':'Notification sur la commande'+" " + commande.produitcommande.product.nom,'body':message}
-	Notification.objects.create(user=user,message=message,nature_notification='etat commande',commande=commande)
+	message='L etat actuel de votre commande'+" " + nom + " " +  'est: ' +" "+ commande.statut_commande +"."
+	data={'titre':'Notification sur la commande'+" " + nom,'body':message}
+	Notification.objects.create(user=user,message=message,nature_notification='etat commande',
+		commande=commande)
 	notif(user,data)
 
 def NotificationCommandeAuVendeur(user,commande,nom):
@@ -25,17 +26,12 @@ def NotificationCommandeAuVendeur(user,commande,nom):
 	notif(user,data)
 	
 
-def AvertissementDeNonLivraison(user,commande):
-	message='L equipe GaalguiShop vous envoie cette notification d avertissement de non livraison du produit '+" "+ commande.produitcommande.product.nom +". Un total de 3 avertissments equivaut a une desactivation de votre boutique!"
+def AvertissementVendeur(user):
+	message='L equipe GaalguiShop vous envoie cette notification d avertissment suite a un non respect de la politique de confidentialité.'
 	data={'titre':'Notification d avertissment ','body':message}
-	Notification.objects.create(user=user,message=message,nature_notification='avertissement',commande=commande)
-	try:
-		avertissement=Avertissement.objects.get(user=user).first()
-		avertissement.total+=1
-		avertissement.save()
-	except ObjectsDoesNotExist:
-		Avertissement.objects.create(user=user,total=1)
-		notif(user,data)
+	Notification.objects.create(user=user,message=message,
+		nature_notification='avertissement')
+	notif(user,data)
 
 def DesactivationDeBoutique(user):
 	message='L équipe GaalguiShop vous envoie cette notification pour vous informer de la désactivation de votre boutique pour non respect de la politique de confidentialité.'
@@ -44,14 +40,14 @@ def DesactivationDeBoutique(user):
 	notif(user,data)
 
 
-def AnnulationAchatCoteClient(user,commande):
-	message=' Suite a un contre temps ,l équipe GaalguiShop vous envoie cette notification pour vous informer de l annulation de votre commande'+" "+ commande.produitcommande.product.nom +" "+".Un remboursement vous sera fait dans les plus brefs delais."
+def AnnulationAchatCoteClient(user,commande,nom):
+	message=' Suite a un contre temps ,l équipe GaalguiShop vous envoie cette notification pour vous informer de l annulation de votre commande'+" "+ nom +" "+".Un remboursement vous sera fait dans les plus brefs delais."
 	data={'titre':'Annulation de commande ','body':message}
 	Notification.objects.create(user=user,message=message,nature_notification='annulation d achat',commande=commande)
 	notif(user,data)
 
-def AnnulationVente(user,commande):
-	message='L équipe GaalguiShop vous envoie cette notification pour vous informer de l annulation de l achat de votre produit'+" "+ commande.produitcommande.product.nom + " "+ "et vous invite a plus de respect de la politique de confidentialité."
+def AnnulationVente(user,commande,nom):
+	message='L équipe GaalguiShop vous envoie cette notification pour vous informer de l annulation de l achat de votre produit'+" "+nom + " "+ "et vous invite a plus de respect de la politique de confidentialité."
 	data={'titre':'Annulation d achat','body':message}
 	Notification.objects.create(user=user,message=message,nature_notification='annulation de vente',commande=commande)
 	notif(user,data)
@@ -65,13 +61,17 @@ def NotificationNewProductToFollower(boutique,produit,vendeur):
 			,produit=produit)
 		notif(follower.user,data)
 
-#def NotificationProduitVendu(vendeur,produit):
-	#message='Votre produit ' + " "+ produit.nom + " " + 'a été recemment vendu,vous pouvez changer la quantité en stock '
+def NotificationActivationBoutique(user):
+	message='L équipe GaalguiShop vous envoie cette notification pour vous informer de la raésactivation de votre boutique'
+	data={'titre':'Reactivation boutique','body':message}
+	Notification.objects.create(user=user,message=message,nature_notification="reactivation boutique")
+	notif(user,data)
 
-
-
-#def NotificationNoteApresVente(client,boutique):
-	#pass
+def NotificationProblemeTeechnique(probleme,users):
+	for user in users:
+		Notification.objects.create(user=user,message=probleme,nature_notification="probleme technique")
+		data={'titre':'Signal d un probleme technique','body':probleme}
+		notif(user,data)
 
 
 

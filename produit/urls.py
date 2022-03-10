@@ -11,6 +11,7 @@ router.register('produitimgmanage',ManageProduitImage)
 router.register('rating',NoteVendeur)
 router.register('commandemanage', RemoveCommande)
 router.register('follower', RemoveFollower)
+router.register('actioncommande',AnnulationCommande)
 
 
 
@@ -60,7 +61,9 @@ urlpatterns=[
     path('getcommande/',GetCommande.as_view()),
     path('getnotification/',NotificationDetail.as_view()),
     path('addfollower/',AddFollower.as_view()),
-    path('isabon/',VeriFollower.as_view())
+    path('isabon/',VeriFollower.as_view()),
+    path('commandepay/',CommandePay.as_view()),
+    path('confirmationpaycommande/',ConfirmationPayCommande.as_view()),
 
 
     

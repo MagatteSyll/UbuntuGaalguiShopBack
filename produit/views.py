@@ -532,69 +532,106 @@ class PostCommande(APIView):
 		data=request.data
 		produitcommande=CartProduct.objects.get(id=data['cart_id'])
 		if produitcommande.product is None:
-			if produitcommande.imageproduct.quantite>=produitcommande.quantity:
-				adress_id=data['adress_id']
-				vendeur=produitcommande.imageproduct.produit.vendeur
-				prod=produitcommande.imageproduct.produit.nom
-				adress=Adress.objects.get(id=adress_id)
-				serializer=CommandeSerializer(data=data)
-				user=request.user
-				livraison=round(decimal.Decimal(data['livraison']),2)
-				commission=round(2*produitcommande.imageproduct.produit.prix/decimal.Decimal(100),2)
-				montant_vendeur=produitcommande.imageproduct.produit.prix-commission
-				if serializer.is_valid():
-					serializer.save(produitcommande=produitcommande,
-						adress=adress,active=True,livraison=livraison,acheteur=user,
-						statut_commande='produit en attente de livraison',commission=commission,
-						montant_vendeur=montant_vendeur)
-					id_commande=serializer.data['id']
-					commande=Commande.objects.get(id=id_commande)
-					produitcommande.imageproduct.quantite-=1
-					produitcommande.imageproduct.save()
-					if produitcommande.imageproduct.quantite==0:
-						produitcommande.imageproduct.active=False
-						produitcommande.imageproduct.save()
-					NotificationCommandeAuVendeur(vendeur,commande,produitcommande.imageproduct.produit.nom)
-					return Response(serializer.data)
-				#return Response(serializer.errors)
+			if produitcommande.imageproduct.active==True:
+				if produitcommande.imageproduct.quantite>=produitcommande.quantity:
+					adress_id=data['adress_id']
+					vendeur=produitcommande.imageproduct.produit.vendeur
+					prod=produitcommande.imageproduct.produit.nom
+					adress=Adress.objects.get(id=adress_id)
+					serializer=CommandeSerializer(data=data)
+					user=request.user
+					livraison=round(decimal.Decimal(data['livraison']),2)
+					commission=round((2*produitcommande.imageproduct.produit.prix*produitcommande.quantity)/decimal.Decimal(100),2)
+					montant_vendeur=produitcommande.quantity*produitcommande.imageproduct.produit.prix-commission
+					if serializer.is_valid():
+						serializer.save(produitcommande=produitcommande,
+							adress=adress,active=True,livraison=livraison,acheteur=user,
+							statut_commande='produit en attente de livraison',commission=commission,
+							montant_vendeur=montant_vendeur,payer=False)
+						id_commande=serializer.data['id']
+						return Response({'id':id_commande})
+					#return Response(serializer.errors)
 		else:
-			if produitcommande.product.qte>=produitcommande.quantity:
-				adress_id=data['adress_id']
-				vendeur=produitcommande.product.vendeur
-				prod=produitcommande.product.nom
-				adress=Adress.objects.get(id=adress_id)
-				serializer=CommandeSerializer(data=data)
-				user=request.user
-				livraison=decimal.Decimal(data['livraison'])
-				commission=round(2*produitcommande.product.prix/decimal.Decimal(100),2)
-				montant_vendeur=produitcommande.product.prix-commission
-				if serializer.is_valid():
-					serializer.save(produitcommande=produitcommande,
-						adress=adress,active=True,livraison=livraison,acheteur=user,
-						statut_commande='produit en attente de livraison',commission=commission,
-						montant_vendeur=montant_vendeur)
-					id_commande=serializer.data['id']
-					commande=Commande.objects.get(id=id_commande)
-					produitcommande.product.qte-=1
-					produitcommande.product.save()
-					if produitcommande.product.qte==0:
-						produitcommande.product.active=False
-						produitcommande.product.save()
-					NotificationCommandeAuVendeur(vendeur,commande,produitcommande.product.nom)
-					return Response(serializer.data)
-				#return Response(serializer.errors)
+			if produitcommande.product.active==True:
+				if produitcommande.product.qte>=produitcommande.quantity:
+					adress_id=data['adress_id']
+					vendeur=produitcommande.product.vendeur
+					prod=produitcommande.product.nom
+					adress=Adress.objects.get(id=adress_id)
+					serializer=CommandeSerializer(data=data)
+					user=request.user
+					livraison=decimal.Decimal(data['livraison'])
+					commission=round((2*produitcommande.product.prix*produitcommande.quantity)/decimal.Decimal(100),2)
+					montant_vendeur=produitcommande.quantity*produitcommande.product.prix-commission
+					if serializer.is_valid():
+						serializer.save(produitcommande=produitcommande,
+							adress=adress,active=True,livraison=livraison,acheteur=user,
+							statut_commande='produit en attente de livraison',commission=commission,
+							montant_vendeur=montant_vendeur,payer=False)
+						id_commande=serializer.data['id']
+						return Response({'id':id_commande})
+					#return Response(serializer.errors)
 				
-		#return Response(serializer.errors)
 
 
-		
+class CommandePay(APIView):
+	def post(self,request):
+		id=request.data.get('id')
+		command=Commande.objects.get(id=id,payer=False)
+		if request.user==command.acheteur:
+			serializer=CommandeSerializer(command)
+			return Response(serializer.data)
+
+class ConfirmationPayCommande(APIView):
+	def post(self,request):
+		id=request.data.get('id')
+		command=Commande.objects.get(id=id,payer=False)
+		if request.user==command.acheteur:
+			command.statut_commande="produit en attente de livraison "
+			command.save()
+			if command.produitcommande.product is None:
+				command.produitcommande.imageproduct.quantite-=1
+				command.produitcommande.imageproduct.save()
+				vendeur=command.produitcommande.imageproduct.produit.vendeur
+				if command.produitcommande.imageproduct.quantite==0:
+					command.produitcommande.imageproduct.active=False
+					command.produitcommande.imageproduct.save()
+				command.payer=True
+				command.active=True
+				command.save()
+				NotificationCommandeAuVendeur(vendeur,command,command.produitcommande.imageproduct.produit.nom)
+				return Response({'commandepay':'success'})
+			else:
+				command.produitcommande.product.qte-=1
+				command.produitcommande.product.save()
+				if command.produitcommande.product.qte==0:
+					command.produitcommande.product.active=False
+					command.produitcommande.product.save()
+				vendeur=command.produitcommande.product.vendeur
+				command.payer=True
+				command.active=True
+				command.save()
+				NotificationCommandeAuVendeur(vendeur,command,command.produitcommande.product.nom)
+				return Response({'commandepay':'success'})
+
+class AnnulationCommande(ModelViewSet):
+	queryset=Commande.objects.all()
+	serializer_class=CommandeSerializer 
+
+	@action(methods=["put"], detail=False, url_path='suppressioncommandeuser')
+	def supprim(self,request,*args,**kwargs):
+		id=self.request.data.get('id')
+		command=Commande.objects.get(id=id)
+		if command is not None:
+			command.delete()
+			return Response({'suppression ':'success'})
 
 #Recu commande			
 class GetCommande(APIView):
 	def post(self,request):
 		data=request.data
 		id=data['id']
-		commande=Commande.objects.get(id=id)
+		commande=Commande.objects.get(id=id,payer=True,active=True)
 		if commande.acheteur==request.user:
 			serializer=CommandeSerializer(commande)
 			return Response(serializer.data)

@@ -21,7 +21,9 @@ NATURE_NOTIFICATION= (
     ("annulation de vente", "annulation de vente"),
     ("desactivation boutique", "desactivation boutique"),
     ("pour follower", "pour follower"),
-    ("note vendeur","note vendeur")
+    ("note vendeur","note vendeur"),
+    ("reactivation boutique","reactivation boutique"),
+    ("probleme technique","probleme technique")
     )
 
  
@@ -80,6 +82,7 @@ class User(AbstractBaseUser,PermissionsMixin):
 	group=AutoSlugField(populate_from=random_string_generator,unique=True)
 	channel=AutoSlugField(populate_from=random_string_generator,unique=True)
 	isbureaucrate=models.BooleanField(default=False)
+	istechnique=models.BooleanField(default=False)
 
 	
 
