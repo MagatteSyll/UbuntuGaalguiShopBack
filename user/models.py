@@ -12,9 +12,9 @@ from autoslug import AutoSlugField
 
 def random_string_generator(request):
     return ''.join(random.choices(string.ascii_letters , k=20))
-
+ 
 NATURE_NOTIFICATION= (
-    ("avertissement", "avertissement"),
+    ("avertissement", "avertissement"), 
     ("etat commande", "etat commande"),
     ("vente", "vente"),
     ("annulation d achat", "annulation d achat"),
@@ -108,6 +108,7 @@ class CodeConfirmationPhone(models.Model):
 	phone=PhoneNumberField()
 	code=models.PositiveIntegerField()
 	created=models.DateTimeField(auto_now_add=True)
+	active=models.BooleanField(default=False)
 
 class Avertissement(models.Model):
 	user=models.ForeignKey(User, on_delete=models.CASCADE)

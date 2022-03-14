@@ -34,7 +34,7 @@ class VendeurPermission(BasePermission):
 #Gestion recherche a revoir
 class ProduitSearch(generics.ListAPIView):
 	permission_classes = [permissions.AllowAny]
-	queryset = Produit.objects.filter(vendu=False,active=True)
+	queryset = Produit.objects.filter(active=True,recycler=False)
 	serializer_class = ProductSerializer
 	filter_backends = [filters.SearchFilter]
 	search_fields = search_fields = ['^nom','^description','^category__category']
@@ -450,12 +450,18 @@ class Manageproduit(ModelViewSet,VendeurPermission):
 	queryset=Produit.objects.all()
 	serializer_class=ProductSerializer 
 	permission_classes=(VendeurPermission,)
-	@action(methods=["delete"], detail=False, url_path='supprimer/(?P<pk>\d+)')
+	@action(methods=["put"], detail=False, url_path='supprimer/(?P<pk>\d+)')
 	def sup_prod(self,*args,**kwargs):
 		id=self.kwargs['pk']
 		produit=Produit.objects.get(id=id)
 		if self.request.user==produit.vendeur:
-			produit.delete()
+			produit.active=False
+			produit.recycler=True
+			produit.save()
+			allproduitimg=ProduitImage.objects.filter(produit=produit)
+			for im in allproduitimg:
+				im.active=False
+				im.save()
 			return Response({'message':'produit supprime'})
 	@action(methods=["put"], detail=False, url_path='modifsanspic/(?P<slug>[\w-]+)')
 	def modif_withoutpic(self,request,*args,**kwargs):
@@ -596,6 +602,12 @@ class ConfirmationPayCommande(APIView):
 				if command.produitcommande.imageproduct.quantite==0:
 					command.produitcommande.imageproduct.active=False
 					command.produitcommande.imageproduct.save()
+					prod=command.produitcommande.imageproduct.produit
+					allproduitimg=ProduitImage.objects.filter(produit=prod)
+					tousnull=all(im.quantite==0 for im in allproduitimg)
+					if tousnull:
+						prod.active=False
+						prod.save()
 				command.payer=True
 				command.active=True
 				command.save()
@@ -648,7 +660,7 @@ class NotificationDetail(APIView):
 	def post(self,request):
 		data=request.data
 		id=data['id']
-		notify=Notification.objects.get(id=id)
+		notify=Notification.objects.get(id=id,active=True)
 		if notify.user==request.user:
 			serializer=NotificationSerializer(notify)
 			return Response(serializer.data)
@@ -697,14 +709,14 @@ class BoutiqueView(APIView):
 #produit actif d un utilisateur d un utilisateur donne
 class MesProduits(APIView):
 	def get(self,request):
-		produit=Produit.objects.filter(vendeur=request.user,active=True).order_by('-id')
+		produit=Produit.objects.filter(vendeur=request.user,recycler=False).order_by('-id')
 		serializer=ProductSerializer(produit,many=True)
 		return Response(serializer.data)
 
 #Produit vendu d un utilisateur
 class MesProduitsVendu(APIView):
 	def get(self,request):
-		produit=Produit.objects.filter(vendeur=request.user,vendu=True)
+		produit=Produit.objects.filter(vendeur=request.user,vendu=True,recycler=False)
 		serializer=ProductSerializer(produit,many=True)
 		return Response(serializer.data)
 
@@ -816,7 +828,7 @@ class ProdutVendu(APIView):
 #Historique d achat 
 class ProduitAchete(APIView): 
 	def get(self,request):
-		produits=Commande.objects.filter(statut_commande="produit livré").order_by('-id')
+		produits=Commande.objects.filter(acheteur=request.user,statut_commande="produit livré").order_by('-id')
 		serializer=CommandeSerializer(produits,many=True) 
 		return Response(serializer.data)
 
@@ -836,7 +848,7 @@ class ProduitActifVendeur(APIView):
 		id=data['id']
 		boutique=Boutique.objects.get(id=id)
 		vendeur=boutique.user
-		items=Produit.objects.filter(vendeur=vendeur,active=True)
+		items=Produit.objects.filter(vendeur=vendeur,recycler=False)
 		serializer=ProductSerializer(items,many=True)
 		return Response(serializer.data)
 
@@ -848,7 +860,7 @@ class ProduitVenduVendeur(APIView):
 		id=data['id']
 		boutique=Boutique.objects.get(id=id)
 		vendeur=boutique.user
-		items=Produit.objects.filter(vendu=True)
+		items=Produit.objects.filter(vendu=True,recycler=False)
 		serializer=ProductSerializer(items,many=True)
 		return Response(serializer.data)
 
@@ -939,10 +951,38 @@ class NosVendeurs(APIView):
 class Occasions(APIView):
 	permission_classes = [permissions.AllowAny]
 	def get(self,request):
-		occasion=Produit.objects.filter(category__category='Occasions').order_by('-id')[:8]
+		occasion=Produit.objects.filter(category__category='Occasions',active=True,recycler=False).order_by('-id')[:8]
 		serializer=ProductSerializer(occasion,many=True)
 		return Response(serializer.data)
 				
+class TousLesProduits(APIView):
+	permission_classes = [permissions.AllowAny]
+	def get(self,request):
+		produits=Produit.objects.filter(active=True,recycler=False)
+		serializer=ProductSerializer(produits,many=True)
+		return Response(serializer.data)
+
+class NoterLeVendeur(APIView):
+	def post(self,request): 
+		id=request.data.get('id')
+		note=round(decimal.Decimal(request.data.get('note')),1)
+		notif=Notification.objects.get(id=id)
+		command=notif.commande
+		if command.produitcommande.product is None:
+			boutique=command.produitcommande.imageproduct.produit.boutique
+			boutique.note_vendeur=(boutique.note_vendeur+note)/2
+			boutique.save()
+			notif.active=False
+			notif.save()
+		else:
+			boutique=command.produitcommande.product.boutique
+			boutique.note_vendeur=(boutique.note_vendeur+note)/2
+			boutique.save()
+			notif.active=False
+			notif.save()
+		return Response({'success':'note'})
+
+
 		
 
 

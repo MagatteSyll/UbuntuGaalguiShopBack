@@ -62,7 +62,7 @@ def NotificationNewProductToFollower(boutique,produit,vendeur):
 		notif(follower.user,data)
 
 def NotificationActivationBoutique(user):
-	message='L équipe GaalguiShop vous envoie cette notification pour vous informer de la raésactivation de votre boutique'
+	message='L équipe GaalguiShop vous envoie cette notification pour vous informer de la réactivation de votre boutique'
 	data={'titre':'Reactivation boutique','body':message}
 	Notification.objects.create(user=user,message=message,nature_notification="reactivation boutique")
 	notif(user,data)
@@ -73,7 +73,11 @@ def NotificationProblemeTeechnique(probleme,users):
 		data={'titre':'Signal d un probleme technique','body':probleme}
 		notif(user,data)
 
-
+def NotificationNoteVendeur(user,nom,commande):
+	message="Vous avez recemment achete le produit" + " " +  nom + " " + "vous pouvez noter le vendeur sur la qualite du produit"
+	data={'titre':'Noter le vendeur','body':message}
+	Notification.objects.create(user=user,message=message,nature_notification="note vendeur",commande=commande)
+	notif(user,data)
 
 
 

@@ -10,7 +10,7 @@ from rest_framework.generics import RetrieveAPIView,DestroyAPIView,GenericAPIVie
 from rest_framework import filters
 from rest_framework import authentication, permissions,generics
 from .models import*
-from user.notifications import NotifcationChangementEtatCommande,AnnulationAchatCoteClient,AnnulationVente,AvertissementVendeur,DesactivationDeBoutique,NotificationActivationBoutique,NotificationProblemeTeechnique
+from user.notifications import NotifcationChangementEtatCommande,AnnulationAchatCoteClient,AnnulationVente,AvertissementVendeur,DesactivationDeBoutique,NotificationActivationBoutique,NotificationProblemeTeechnique,NotificationNoteVendeur
 
 
 
@@ -63,16 +63,22 @@ class RetraitCommande(APIView):
 		commande=Commande.objects.get(id=id)
 		commande.statut_commande="produit livré"
 		commande.save()
+		user=commande.acheteur
 		if commande.produitcommande.product is None:
 			commande.produitcommande.imageproduct.vendu=True
 			commande.produitcommande.imageproduct.qte_vendu+=commande.produitcommande.quantity
 			commande.produitcommande.imageproduct.save()
+			prod=commande.produitcommande.imageproduct.produit
+			prod.vendu_qte+=commande.produitcommande.quantity
+			prod.vendu=True
+			prod.save()
+			NotificationNoteVendeur(user,prod.nom,commande)
 		else:
 			commande.produitcommande.product.vendu=True
 			commande.produitcommande.product.vendu_qte+=commande.produitcommande.quantity
 			commande.produitcommande.product.save()
-		user=commande.acheteur
-		#NotificationDe Note
+			NotificationNoteVendeur(user,commande.produitcommande.product.nom,commande)
+		
 		action='Modification du status de la  commande : '+ " " +  str(id) + " " + 'nouveau status:' + commande.statut_commande
 		identifiant=request.user
 		ActionStaff.objects.create(identifiant=identifiant,action=action)
@@ -93,13 +99,7 @@ class ModificationEtatCommande(APIView):
 		ActionStaff.objects.create(action=action,identifiant=identifiant)
 		return Response ({'success':'modification commande'})
 		
-
-
-
-
-
-	
-		
+#Annulation commande par le personnel de bureau		
 class AnnulationCommande(APIView):
 	permission_classes=[permissions.IsAdminUser]
 	def post(self,request):
@@ -146,6 +146,8 @@ class AvertirVendeur(APIView):
 					im.active=False
 					im.save()
 			DesactivationDeBoutique(boutique.user)
+			boutique.nbredesactivation+=1
+			boutique.save()
 		action="avertissement de l utilisateur  numero" + " " + str(boutique.user.id) +" "+ "pour motif"+" "+ motif
 		identifiant=request.user
 		ActionStaff.objects.create(identifiant=identifiant,action=action) 
@@ -184,22 +186,6 @@ class ReactivationVendeur(APIView):
 		identifiant=request.user
 		ActionStaff.objects.create(identifiant=identifiant,action=action) 
 		return Response({'success':'reactivation vendeur'})
-
-
-
-class DeleteProduit(ModelViewSet):
-	queryset=Produit.objects.all()
-	serializer_class=ProductSerializer
-	permission_classes=[permissions.IsAdminUser]
-	@action(methods=["delete"], detail=False, url_path='supprimer/(?P<pk>\d+)')
-	def sup_prod(self,*args,**kwargs):
-		id=self.kwargs['pk']
-		produit=Produit.objects.get(id=id)
-		produit.delete()
-		action='suppression du produit Numero:' + " " + str(id)
-		identifiant=request.user
-		ActionStaff.objects.create(action=action,identifiant=identifiant)
-		return Response({'message':'produit supprime'})
 	
 
 class GetBoutique(APIView):

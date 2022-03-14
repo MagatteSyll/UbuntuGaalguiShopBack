@@ -51,6 +51,7 @@ class Boutique(models.Model):
 		slug = AutoSlugField(populate_from=random_string_generator,unique=True)
 		avertissement=models.PositiveIntegerField(default=0)
 		active=models.BooleanField(default=True)
+		nbredesactivation=models.PositiveIntegerField(default=0)
 
 		def __str__(self):
 		    return self.user.prenom	

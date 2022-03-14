@@ -64,6 +64,8 @@ urlpatterns=[
     path('isabon/',VeriFollower.as_view()),
     path('commandepay/',CommandePay.as_view()),
     path('confirmationpaycommande/',ConfirmationPayCommande.as_view()),
+    path('touslesproduits/',TousLesProduits.as_view()),
+    path('noterlevendeur/',NoterLeVendeur.as_view())
 
 
     

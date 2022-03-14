@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import*
 from phonenumber_field.serializerfields import PhoneNumberField
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 
@@ -23,6 +24,15 @@ class UserSerializer(serializers.ModelSerializer):
 			instance.set_password(password)
 		instance.save()
 		return instance
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+    	if user.active==True and user.conform_phone==True:
+    		token = super().get_token(user)
+    		token['name'] = user.group
+    		return token
 
 
 

@@ -10,25 +10,42 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from random import randint
 from produit.serializer import NotificationSerializer,FollowerSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
 
 
 
 
+
+
+
+
+class MyTokenObtainPairView(TokenObtainPairView):
+	serializer_class=MyTokenObtainPairSerializer
+
+class MyTokenRefreshPairView(TokenRefreshView):
+	serializer_class=MyTokenObtainPairSerializer
 
 class PhoneConfirmationRegistration(APIView):
 	permission_classes = [permissions.AllowAny]
 	def post(self,request):
-		data=request.data
-		phone=data['phone']
-		try:
-			user=User.objects.get(phone=phone)
-		except User.DoesNotExist:
-			code=randint(10000,99999)
-			phoneconfir=CodeConfirmationPhone.objects.create(phone=phone,code=code)
-			id=phoneconfir.id
-			#code telephone
-			return Response({'id':id})
+		id=request.data.get('id')
+		code_id=request.data.get('code_id')
+		code=int(request.data.get('code'))
+		confirm=CodeConfirmationPhone.objects.get(id=code_id)
+		if confirm.code==code:
+			user=User.objects.get(id=id)
+			user.conform_phone=True
+			user.active=True
+			user.save()
+			confirm.active=False
+			confirm.save()
+			Boutique.objects.create(user=user,note_vendeur=0)
+			Cart.objects.create(proprietaire=user)
+			Follower.objects.create(user=user)
+			serializer=UserSerializer(user)
+			return Response(serializer.data)
+
 
 
 class GetUserChannel(APIView):
@@ -52,17 +69,14 @@ class RegistrationView(APIView):
 	permission_classes = [permissions.AllowAny]
 	def post(self, request):
 		data=request.data
-		id=data['identifiant']
-		code=int(data['code'])
-		confirm=CodeConfirmationPhone.objects.get(id=id)
-		if confirm.code==code:
-			serializer = UserSerializer(data=request.data)
-			if serializer.is_valid():
-				user=serializer.save()
-				Boutique.objects.create(user=user,note_vendeur=0)
-				Cart.objects.create(proprietaire=user)
-				Follower.objects.create(user=user)
-				return Response({'message':'utilisateur bien cree'})
+		serializer = UserSerializer(data=request.data)
+		if serializer.is_valid():
+			user=serializer.save(conform_phone=False,active=False)
+			code=randint(10000,99999)
+			phoneconfir=CodeConfirmationPhone.objects.create(phone=user.phone,code=code,active=True)
+			#Notification code numero
+			return Response({'prenom':user.prenom,"nom":user.nom,
+		'user_id':user.id,'code_id':phoneconfir.id})
 
 		
 class Authent(APIView):
@@ -72,6 +86,15 @@ class Authent(APIView):
 			return Response(True)
 		else:
 			return Response(False)
+
+class GetNewUser(APIView):
+	permission_classes = [permissions.AllowAny]
+	def post(self,request):
+		id=request.data.get('id')
+		user=User.objects.get(id=id)
+		serializer=UserSerializer(user)
+		return Response(serializer.data)
+
 
 class GetUser(APIView):
 	permission_classes = [permissions.AllowAny]
