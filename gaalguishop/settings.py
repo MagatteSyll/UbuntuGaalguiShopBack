@@ -164,7 +164,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 CORS_ALLOWED_ORIGINS = [
 
     "http://localhost:3000",
-    "http://localhost:8100"
+    "http://localhost:8100",
+    "https://gaalguishop.herokuapp.com"
     
 ]
 
