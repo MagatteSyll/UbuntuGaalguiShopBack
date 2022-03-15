@@ -78,6 +78,7 @@ Twisted==22.1.0
 txaio==22.2.1
 typing_extensions==4.1.1
 Werkzeug==2.0.3
+whitenoise==6.0.0
 WTForms==2.2.1
 zipp==3.7.0
 zope.interface==5.4.0
