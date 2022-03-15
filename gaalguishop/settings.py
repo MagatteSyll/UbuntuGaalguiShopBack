@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from pathlib import Path 
 import os
 from datetime import timedelta
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -87,16 +88,31 @@ WSGI_APPLICATION = 'gaalguishop.wsgi.application'
 ASGI_APPLICATION = 'gaalguishop.asgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'gaalguishop',
-    }
+       # 'ENGINE': 'django.db.backends.postgresql',
+        'USER':'tgxxxoxjzdvenn',
+        'NAME': 'd8jnqgj8c8d3vt',
+        'PASSWORD':'3ae3e6d737e9395741e6f168216e63eddf145e5362ff22af442e5e0e3173af31',
+        'HOST':'ec2-44-194-167-63.compute-1.amazonaws.com',
+        'PORT':'5432'
+    } 
 }
+# Database
+# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
+db_from_env = dj_database_url.config(conn_max_age=600)
+DATABASES['default'] = dj_database_url.config(default='postgres://tgxxxoxjzdvenn:3ae3e6d737e9395741e6f168216e63eddf145e5362ff22af442e5e0e3173af31@ec2-44-194-167-63.compute-1.amazonaws.com:5432/d8jnqgj8c8d3vt')
+DATABASES['default'].update(db_from_env)
+
+
+#DATABASES = {
+   # 'default': {
+       # 'ENGINE': 'django.db.backends.postgresql',
+       # 'NAME': 'gaalguishop',
+   # }
+#}
+
    
 
 # Password validation
